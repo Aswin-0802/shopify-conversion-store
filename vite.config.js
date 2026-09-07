@@ -16,11 +16,6 @@ export default defineConfig(({isSsrBuild}) => ({
       // Vite's native tsconfig path resolver does not cover JavaScript
       // projects that use jsconfig.json, so define Hydrogen's app alias here.
       '~': fileURLToPath(new URL('./app', import.meta.url)),
-      // Vercel Node has no renderToReadableStream on react-dom/server
-      // (that export lives on the browser/worker build Oxygen uses).
-      ...(isSsrBuild && vercelBuild
-        ? {'react-dom/server': 'react-dom/server.browser'}
-        : {}),
     },
     tsconfigPaths: true,
   },
