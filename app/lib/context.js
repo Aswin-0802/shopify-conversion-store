@@ -2,6 +2,7 @@ import {createHydrogenContext} from '@shopify/hydrogen';
 import {AppSession} from '~/lib/session';
 import {CART_QUERY_FRAGMENT} from '~/lib/fragments';
 import {openHydrogenCache} from '~/lib/memory-cache';
+import {readRuntimeEnv} from '~/lib/runtime-env';
 
 // Define the additional context object
 const additionalContext = {
@@ -11,29 +12,6 @@ const additionalContext = {
   // cms: await createCMSClient(env),
   // reviews: await createReviewsClient(env),
 };
-
-/**
- * @param {NodeJS.ProcessEnv | Env | undefined} env
- * @returns {Env}
- */
-function normalizeEnv(env = {}) {
-  const storeDomain = env.PUBLIC_STORE_DOMAIN || '';
-  return {
-    ...env,
-    SESSION_SECRET: env.SESSION_SECRET || '',
-    PUBLIC_STORE_DOMAIN: storeDomain,
-    PUBLIC_STOREFRONT_API_TOKEN: env.PUBLIC_STOREFRONT_API_TOKEN || '',
-    PRIVATE_STOREFRONT_API_TOKEN: env.PRIVATE_STOREFRONT_API_TOKEN || '',
-    PUBLIC_STOREFRONT_ID: env.PUBLIC_STOREFRONT_ID || '',
-    PUBLIC_CHECKOUT_DOMAIN: env.PUBLIC_CHECKOUT_DOMAIN || storeDomain,
-    PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID:
-      env.PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID || '',
-    PUBLIC_CUSTOMER_ACCOUNT_API_URL: env.PUBLIC_CUSTOMER_ACCOUNT_API_URL || '',
-    PUBLIC_JUDGEME_SHOP_DOMAIN: env.PUBLIC_JUDGEME_SHOP_DOMAIN || '',
-    CONTACT_FORM_ENDPOINT: env.CONTACT_FORM_ENDPOINT || '',
-    NEWSLETTER_FORM_ENDPOINT: env.NEWSLETTER_FORM_ENDPOINT || '',
-  };
-}
 
 /**
  * @param {{waitUntil?: (promise: Promise<unknown>) => void} | undefined} executionContext
@@ -62,10 +40,12 @@ export async function createHydrogenRouterContext(
   env = process.env,
   executionContext,
 ) {
-  const runtimeEnv = normalizeEnv(env);
+  const runtimeEnv = readRuntimeEnv(env);
 
   if (!runtimeEnv.SESSION_SECRET) {
-    throw new Error('SESSION_SECRET environment variable is not set');
+    throw new Error(
+      'SESSION_SECRET is not set. Add it in Vercel → Settings → Environment Variables for Production and Preview, then Redeploy.',
+    );
   }
 
   const waitUntil = getWaitUntil(executionContext);

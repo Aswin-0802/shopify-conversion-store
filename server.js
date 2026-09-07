@@ -55,7 +55,12 @@ async function handleFetch(request, env = process.env, executionContext) {
  * @param {{waitUntil?: (promise: Promise<unknown>) => void}} [executionContext]
  */
 async function vercelHandler(request, env, executionContext) {
-  return handleFetch(request, env ?? process.env, executionContext);
+  const platform =
+    executionContext ||
+    (env && typeof env.waitUntil === 'function' ? env : undefined);
+  const shopEnv =
+    env && typeof env.SESSION_SECRET === 'string' ? env : undefined;
+  return handleFetch(request, shopEnv, platform);
 }
 
 vercelHandler.fetch = handleFetch;

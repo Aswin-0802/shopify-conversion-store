@@ -87,7 +87,7 @@ https://github.com/Aswin-0802/shopify-conversion-store
 
 1. Open [Vercel](https://vercel.com) → **Add New → Project** → import that repo.
 2. Framework preset: **React Router**. Build command: `npm run build`.
-3. **Settings → Environment Variables** (Production + Preview). Copy values from local `.env` — never commit `.env`:
+3. **Settings → Environment Variables**. For **each** variable, enable **Production**, **Preview**, and **Development** (all three). Copy values from local `.env` — never commit `.env`:
 
    - `SESSION_SECRET` (long random string)
    - `PUBLIC_STORE_DOMAIN`
@@ -96,6 +96,8 @@ https://github.com/Aswin-0802/shopify-conversion-store
    - `PRIVATE_STOREFRONT_API_TOKEN` (recommended)
    - `PUBLIC_STOREFRONT_ID` (optional)
    - `PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID` / `PUBLIC_CUSTOMER_ACCOUNT_API_URL` (only if Sign in should work)
+
+   Then **Deployments → ⋯ on the latest deployment → Redeploy**. New variables do not apply until you redeploy. Preview URLs (`*-aswin-ms-projects-*.vercel.app`) need the **Preview** checkbox or they still 500.
 
 4. Deploy. Vercel gives a public `*.vercel.app` URL. Anyone can open it — no Shopify login.
 
