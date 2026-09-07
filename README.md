@@ -95,31 +95,20 @@ Oxygen gives you a `*.myshopify.dev` URL (and you can attach a custom domain in 
 
 #### Why visitors see “Log in — Continue to Oxygen”
 
-Oxygen **preview deployments are private by default**. A URL like:
+This is Shopify’s host, not a storefront bug. **Development stores have no public Oxygen environments**, so every `*.myshopify.dev` URL requires a store login. Friends and incognito visitors will always see **Continue to Oxygen**.
 
-`https://01m1x….myshopify.dev`
-
-always sends strangers to Shopify login. That is staff/preview auth, not a bug in this repo.
-
-Share the **production** storefront URL instead:
+A long preview URL (`https://01m1x….myshopify.dev`) is also staff-only. The named production URL is the same restriction while the shop is still a development store:
 
 `https://sloane-537fbcfec468b845b4b3.o2.myshopify.dev`
 
-If that URL also asks for login (common on **development stores**), make a public link:
+To make it public:
 
-1. Shopify Admin → **Sales channels → Hydrogen → Sloane**
-2. Open the latest **deployment**
-3. Click **Share** → **Anyone with the link** → **Copy link**
+1. Transfer / pick a **paid Shopify plan** (Pause and build, Basic, or higher).
+2. In Admin: **Sales channels → Hydrogen → Sloane** → publish the **production** environment.
+3. Optionally click a deployment → **Share** → **Anyone with the link** (Basic and above).
+4. Share the production URL, not a one-off preview ID.
 
-Shareable links need a store on the **Basic plan or above**. Development stores often cannot create them.
-
-CLI workaround (token lasts up to 12 hours):
-
-```bash
-npx shopify hydrogen deploy --auth-bypass-token --auth-bypass-token-duration 12
-```
-
-The command prints a URL with a bypass token. Send that link, not the raw preview URL.
+Until the shop is on a paid plan, only staff with access to `development-store-xjoca71n` can open the live Oxygen URL. Use `npm run dev` locally, or this GitHub repo, for a portfolio demo.
 
 ### B. Vercel (free hobby plan)
 
