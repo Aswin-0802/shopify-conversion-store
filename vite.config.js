@@ -4,8 +4,13 @@ import {hydrogen} from '@shopify/hydrogen/vite';
 import {oxygen} from '@shopify/mini-oxygen/vite';
 import {reactRouter} from '@react-router/dev/vite';
 
-export default defineConfig({
-  plugins: [hydrogen(), oxygen(), reactRouter()],
+const vercelBuild =
+  process.env.VERCEL === '1' || process.env.npm_lifecycle_event === 'build';
+
+export default defineConfig(({isSsrBuild}) => ({
+  plugins: [hydrogen(), vercelBuild ? null : oxygen(), reactRouter()].filter(
+    Boolean,
+  ),
   resolve: {
     alias: {
       // Vite's native tsconfig path resolver does not cover JavaScript
@@ -18,6 +23,7 @@ export default defineConfig({
     // Allow a strict Content-Security-Policy
     // without inlining assets as base64:
     assetsInlineLimit: 0,
+    rollupOptions: isSsrBuild && vercelBuild ? {input: './server.js'} : undefined,
   },
   ssr: {
     optimizeDeps: {
@@ -39,6 +45,6 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ['.tryhydrogen.dev'],
+    allowedHosts: ['.tryhydrogen.dev', '.vercel.app'],
   },
-});
+}));

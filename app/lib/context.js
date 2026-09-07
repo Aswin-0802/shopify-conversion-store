@@ -1,6 +1,7 @@
 import {createHydrogenContext} from '@shopify/hydrogen';
 import {AppSession} from '~/lib/session';
 import {CART_QUERY_FRAGMENT} from '~/lib/fragments';
+import {openHydrogenCache} from '~/lib/memory-cache';
 
 // Define the additional context object
 const additionalContext = {
@@ -12,38 +13,74 @@ const additionalContext = {
 };
 
 /**
- * Creates Hydrogen context for React Router 7.9.x
- * Returns HydrogenRouterContextProvider with hybrid access patterns
+ * @param {NodeJS.ProcessEnv | Env | undefined} env
+ * @returns {Env}
+ */
+function normalizeEnv(env = {}) {
+  const storeDomain = env.PUBLIC_STORE_DOMAIN || '';
+  return {
+    ...env,
+    SESSION_SECRET: env.SESSION_SECRET || '',
+    PUBLIC_STORE_DOMAIN: storeDomain,
+    PUBLIC_STOREFRONT_API_TOKEN: env.PUBLIC_STOREFRONT_API_TOKEN || '',
+    PRIVATE_STOREFRONT_API_TOKEN: env.PRIVATE_STOREFRONT_API_TOKEN || '',
+    PUBLIC_STOREFRONT_ID: env.PUBLIC_STOREFRONT_ID || '',
+    PUBLIC_CHECKOUT_DOMAIN: env.PUBLIC_CHECKOUT_DOMAIN || storeDomain,
+    PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID:
+      env.PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID || '',
+    PUBLIC_CUSTOMER_ACCOUNT_API_URL: env.PUBLIC_CUSTOMER_ACCOUNT_API_URL || '',
+    PUBLIC_JUDGEME_SHOP_DOMAIN: env.PUBLIC_JUDGEME_SHOP_DOMAIN || '',
+    CONTACT_FORM_ENDPOINT: env.CONTACT_FORM_ENDPOINT || '',
+    NEWSLETTER_FORM_ENDPOINT: env.NEWSLETTER_FORM_ENDPOINT || '',
+  };
+}
+
+/**
+ * @param {{waitUntil?: (promise: Promise<unknown>) => void} | undefined} executionContext
+ * @returns {(promise: Promise<unknown>) => void}
+ */
+function getWaitUntil(executionContext) {
+  if (executionContext?.waitUntil) {
+    return executionContext.waitUntil.bind(executionContext);
+  }
+  return (promise) => {
+    void Promise.resolve(promise).catch((error) => {
+      console.error(error);
+    });
+  };
+}
+
+/**
+ * Creates Hydrogen context for React Router.
+ * Works on Oxygen (Worker env) and Vercel / Node (`process.env`).
  * @param {Request} request
- * @param {Env} env
- * @param {ExecutionContext} executionContext
+ * @param {Env | NodeJS.ProcessEnv} [env]
+ * @param {{waitUntil?: (promise: Promise<unknown>) => void}} [executionContext]
  */
 export async function createHydrogenRouterContext(
   request,
-  env,
+  env = process.env,
   executionContext,
 ) {
-  /**
-   * Open a cache instance in the worker and a custom session instance.
-   */
-  if (!env?.SESSION_SECRET) {
+  const runtimeEnv = normalizeEnv(env);
+
+  if (!runtimeEnv.SESSION_SECRET) {
     throw new Error('SESSION_SECRET environment variable is not set');
   }
 
-  const waitUntil = executionContext.waitUntil.bind(executionContext);
+  const waitUntil = getWaitUntil(executionContext);
   const [cache, session] = await Promise.all([
-    caches.open('hydrogen'),
-    AppSession.init(request, [env.SESSION_SECRET]),
+    openHydrogenCache(),
+    AppSession.init(request, [runtimeEnv.SESSION_SECRET]),
   ]);
 
   const hydrogenContext = createHydrogenContext(
     {
-      env,
+      env: runtimeEnv,
       request,
       cache,
       waitUntil,
       session,
-      // Or detect from URL path based on locale subpath, cookies, or any other strategy
       i18n: {language: 'EN', country: 'US'},
       cart: {
         queryFragment: CART_QUERY_FRAGMENT,

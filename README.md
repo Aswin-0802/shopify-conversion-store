@@ -77,83 +77,38 @@ Restart `npm run dev` after changing env vars.
 
 - Product catalog, cart, checkout, and search use **your** shop.
 - Customer accounts (Sign in) only appear if Customer Account API vars are set.
-- `npx shopify hydrogen deploy` can publish to **Oxygen**, Shopify’s free Hydrogen host.
+- Host the public site on **Vercel**. Oxygen stays private on development stores.
 
-## Deploy / host it
+## Deploy on Vercel (public URL)
 
-Hydrogen is a React Router app with a Worker-style `fetch` server (`server.js`). Pick one of these.
+This app builds as a React Router server for Vercel. The GitHub repo is:
 
-### A. Shopify Oxygen (simplest, free with a linked store)
+https://github.com/Aswin-0802/shopify-conversion-store
 
-Best option once `hydrogen link` works.
-
-```bash
-npx shopify hydrogen deploy
-```
-
-Oxygen gives you a `*.myshopify.dev` URL (and you can attach a custom domain in the Hydrogen channel). You do **not** need Vercel for this.
-
-#### Why visitors see “Log in — Continue to Oxygen”
-
-This is Shopify’s host, not a storefront bug. **Development stores have no public Oxygen environments**, so every `*.myshopify.dev` URL requires a store login. Friends and incognito visitors will always see **Continue to Oxygen**.
-
-A long preview URL (`https://01m1x….myshopify.dev`) is also staff-only. The named production URL is the same restriction while the shop is still a development store:
-
-`https://sloane-537fbcfec468b845b4b3.o2.myshopify.dev`
-
-To make it public:
-
-1. Transfer / pick a **paid Shopify plan** (Pause and build, Basic, or higher).
-2. In Admin: **Sales channels → Hydrogen → Sloane** → publish the **production** environment.
-3. Optionally click a deployment → **Share** → **Anyone with the link** (Basic and above).
-4. Share the production URL, not a one-off preview ID.
-
-Until the shop is on a paid plan, only staff with access to `development-store-xjoca71n` can open the live Oxygen URL. Use `npm run dev` locally, or this GitHub repo, for a portfolio demo.
-
-### B. Vercel (free hobby plan)
-
-Vercel is a fine public URL for a portfolio, but this repo is wired for **Oxygen**, not Vercel’s Node adapter. To put it on Vercel you switch the server runtime.
-
-1. Create a GitHub repo and push this project (without `.env`).
-2. In [Vercel](https://vercel.com): **Add New → Project → Import** the repo.
-3. Follow Shopify’s [self-hosting Hydrogen](https://shopify.dev/docs/storefronts/headless/hydrogen/deployments/self-hosting) notes **and** Vercel’s [React Router](https://reactrouter.com/start/framework/installation) / Vercel guide:
-   - Remove the Oxygen Vite plugin (`oxygen()` in `vite.config.js`).
-   - Keep `hydrogen()`.
-   - Point the server entry at Vercel’s React Router preset instead of Mini-Oxygen.
-   - Pass `createHydrogenContext` through `getLoadContext` (see `app/lib/context.js`).
-4. In Vercel → **Settings → Environment Variables**, add at least:
+1. Open [Vercel](https://vercel.com) → **Add New → Project** → import that repo.
+2. Framework preset: **React Router**. Build command: `npm run build`.
+3. **Settings → Environment Variables** (Production + Preview). Copy values from local `.env` — never commit `.env`:
 
    - `SESSION_SECRET` (long random string)
    - `PUBLIC_STORE_DOMAIN`
    - `PUBLIC_STOREFRONT_API_TOKEN`
-   - `PUBLIC_CHECKOUT_DOMAIN`
+   - `PUBLIC_CHECKOUT_DOMAIN` (same as the store domain if unsure)
+   - `PRIVATE_STOREFRONT_API_TOKEN` (recommended)
+   - `PUBLIC_STOREFRONT_ID` (optional)
+   - `PUBLIC_CUSTOMER_ACCOUNT_API_CLIENT_ID` / `PUBLIC_CUSTOMER_ACCOUNT_API_URL` (only if Sign in should work)
 
-   Leave store tokens empty only if you are okay serving Mock.shop on the live URL.
+4. Deploy. Vercel gives a public `*.vercel.app` URL. Anyone can open it — no Shopify login.
 
-5. Deploy. Use the Hobby plan for a free preview URL.
+If Sign in should work on that URL, add the Vercel domain in Shopify **Customer account** / Hydrogen storefront settings as an allowed callback origin.
 
-Shopify’s current self-hosting doc: https://shopify.dev/docs/storefronts/headless/hydrogen/deployments/self-hosting
+Local `npm run dev` still uses Mini-Oxygen on http://localhost:3000.
 
-If you only need a public demo and do not want to rewrite the server, use Oxygen (A) or Cloudflare (C). Those match this Worker `fetch` entry more closely.
-
-### C. Cloudflare Workers / Pages (free tier)
-
-Closest match to Oxygen (also a `fetch` Worker).
-
-1. Install Wrangler: `npm install -D wrangler`
-2. Follow [Deploy a React Router app to Cloudflare](https://reactrouter.com/how-to/cloudflare) plus Shopify self-hosting (remove `oxygen()`, keep `hydrogen()`, keep `createHydrogenContext`).
-3. Set the same env vars as above (`wrangler secret put SESSION_SECRET`, etc.).
-4. `npx wrangler deploy`
-
-### D. Netlify (free starter)
-
-Same idea as Vercel: React Router Netlify adapter + Hydrogen context. See [Netlify + React Router](https://docs.netlify.com/frameworks/react-router/) and the Shopify self-hosting page.
+Shopify’s self-hosting notes: https://shopify.dev/docs/storefronts/headless/hydrogen/deployments/self-hosting
 
 ## Scripts
 
 ```bash
-npm run dev       # local storefront
-npm run build     # production build
-npm run preview   # run the build locally
-npx shopify hydrogen deploy   # Oxygen, needs a linked store
+npm run dev       # local storefront (Mini-Oxygen)
+npm run build     # Vercel / React Router production build
+npm run preview   # preview the production build locally
 ```
