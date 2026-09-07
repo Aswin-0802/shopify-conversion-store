@@ -31,7 +31,7 @@ export function SearchForm({children, ...props}) {
   }
 
   return (
-    <Form method="get" {...props}>
+    <Form method="get" action="/search" {...props}>
       {children({inputRef})}
     </Form>
   );

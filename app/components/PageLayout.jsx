@@ -1,6 +1,7 @@
 import {Await, Link} from 'react-router';
 import {Suspense, useId} from 'react';
 import {Aside} from '~/components/Aside';
+import {AnnouncementBar} from '~/components/AnnouncementBar';
 import {Footer} from '~/components/Footer';
 import {Header, HeaderMenu} from '~/components/Header';
 import {CartMain} from '~/components/CartMain';
@@ -20,21 +21,27 @@ export function PageLayout({
   header,
   isLoggedIn,
   publicStoreDomain,
+  showAccount,
 }) {
   return (
     <Aside.Provider>
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       <CartAside cart={cart} />
       <SearchAside />
-      <MobileMenuAside header={header} publicStoreDomain={publicStoreDomain} />
-      {header && (
+      <MobileMenuAside header={header} publicStoreDomain={publicStoreDomain} showAccount={showAccount} />
+      <AnnouncementBar />
+      {header ? (
         <Header
           header={header}
           cart={cart}
           isLoggedIn={isLoggedIn}
           publicStoreDomain={publicStoreDomain}
+          showAccount={showAccount}
         />
-      )}
-      <main>{children}</main>
+      ) : null}
+      <div id="main-content">{children}</div>
       <Footer
         footer={footer}
         header={header}
@@ -49,12 +56,10 @@ export function PageLayout({
  */
 function CartAside({cart}) {
   return (
-    <Aside type="cart" heading="CART">
-      <Suspense fallback={<p>Loading cart ...</p>}>
+    <Aside type="cart" heading="Cart">
+      <Suspense fallback={<p>Loading cart…</p>}>
         <Await resolve={cart}>
-          {(cart) => {
-            return <CartMain cart={cart} layout="aside" />;
-          }}
+          {(resolvedCart) => <CartMain cart={resolvedCart} layout="aside" />}
         </Await>
       </Suspense>
     </Aside>
@@ -64,24 +69,28 @@ function CartAside({cart}) {
 function SearchAside() {
   const queriesDatalistId = useId();
   return (
-    <Aside type="search" heading="SEARCH">
+    <Aside type="search" heading="Search">
       <div className="predictive-search">
-        <br />
         <SearchFormPredictive>
           {({fetchResults, goToSearch, inputRef}) => (
-            <>
+            <div className="search-form">
+              <label htmlFor="predictive-search" className="sr-only">
+                Search products
+              </label>
               <input
+                id="predictive-search"
                 name="q"
                 onChange={fetchResults}
                 onFocus={fetchResults}
-                placeholder="Search"
+                placeholder="Search the collection"
                 ref={inputRef}
                 type="search"
                 list={queriesDatalistId}
               />
-              &nbsp;
-              <button onClick={goToSearch}>Search</button>
-            </>
+              <button className="btn" onClick={goToSearch} type="button">
+                Search
+              </button>
+            </div>
           )}
         </SearchFormPredictive>
 
@@ -90,7 +99,7 @@ function SearchAside() {
             const {articles, collections, pages, products, queries} = items;
 
             if (state === 'loading' && term.current) {
-              return <div>Loading...</div>;
+              return <p>Searching…</p>;
             }
 
             if (!total) {
@@ -125,13 +134,11 @@ function SearchAside() {
                 />
                 {term.current && total ? (
                   <Link
+                    className="btn btn-secondary"
                     onClick={closeSearch}
-                    to={`${SEARCH_ENDPOINT}?q=${term.current}`}
+                    to={`${SEARCH_ENDPOINT}?q=${encodeURIComponent(term.current)}`}
                   >
-                    <p>
-                      View all results for <q>{term.current}</q>
-                      &nbsp; →
-                    </p>
+                    View all results for {term.current}
                   </Link>
                 ) : null}
               </>
@@ -149,19 +156,19 @@ function SearchAside() {
  *   publicStoreDomain: PageLayoutProps['publicStoreDomain'];
  * }}
  */
-function MobileMenuAside({header, publicStoreDomain}) {
+function MobileMenuAside({header, publicStoreDomain, showAccount}) {
+  if (!header?.shop?.primaryDomain?.url) return null;
+
   return (
-    header.menu &&
-    header.shop.primaryDomain?.url && (
-      <Aside type="mobile" heading="MENU">
-        <HeaderMenu
-          menu={header.menu}
-          viewport="mobile"
-          primaryDomainUrl={header.shop.primaryDomain.url}
-          publicStoreDomain={publicStoreDomain}
-        />
-      </Aside>
-    )
+    <Aside type="mobile" heading="Menu">
+      <HeaderMenu
+        menu={header.menu}
+        viewport="mobile"
+        primaryDomainUrl={header.shop.primaryDomain.url}
+        publicStoreDomain={publicStoreDomain}
+        showAccount={showAccount}
+      />
+    </Aside>
   );
 }
 
@@ -172,6 +179,7 @@ function MobileMenuAside({header, publicStoreDomain}) {
  * @property {HeaderQuery} header
  * @property {Promise<boolean>} isLoggedIn
  * @property {string} publicStoreDomain
+ * @property {boolean} [showAccount]
  * @property {React.ReactNode} [children]
  */
 

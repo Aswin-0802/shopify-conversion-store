@@ -49,8 +49,8 @@ export function CartMain({layout, cart: originalCart}) {
       className={className}
       aria-label={layout === 'page' ? 'Cart page' : 'Cart drawer'}
     >
-      <CartEmpty hidden={linesCount} layout={layout} />
-      <div className="cart-details">
+      {!linesCount ? <CartEmpty /> : null}
+      <div className="cart-details" hidden={!linesCount}>
         <p id="cart-lines" className="sr-only">
           Line items
         </p>
@@ -81,24 +81,14 @@ export function CartMain({layout, cart: originalCart}) {
   );
 }
 
-/**
- * @param {{
- *   hidden: boolean;
- *   layout?: CartMainProps['layout'];
- * }}
- */
-function CartEmpty({hidden = false}) {
+function CartEmpty() {
   const {close} = useAside();
   return (
-    <div hidden={hidden}>
-      <br />
-      <p>
-        Looks like you haven&rsquo;t added anything yet, let&rsquo;s get you
-        started!
-      </p>
-      <br />
-      <Link to="/collections" onClick={close} prefetch="viewport">
-        Continue shopping →
+    <div className="empty-state">
+      <h2>Your cart is empty</h2>
+      <p>When you find something you love, it will live here.</p>
+      <Link className="btn" to="/collections/all" onClick={close} prefetch="viewport">
+        Continue shopping
       </Link>
     </div>
   );

@@ -17,9 +17,10 @@ import {useAside} from './Aside';
  */
 export function CartLineItem({layout, line, childrenMap}) {
   const {id, merchandise} = line;
-  const {product, title, image, selectedOptions} = merchandise;
-  const lineItemUrl = useVariantUrl(product.handle, selectedOptions);
+  const {product, title, image, selectedOptions} = merchandise || {};
+  const lineItemUrl = useVariantUrl(product?.handle, selectedOptions);
   const {close} = useAside();
+  if (!product?.handle) return null;
   const lineItemChildren = childrenMap[id];
   const childrenLabelId = `cart-line-children-${id}`;
 
@@ -53,7 +54,7 @@ export function CartLineItem({layout, line, childrenMap}) {
           </Link>
           <ProductPrice price={line?.cost?.totalAmount} />
           <ul>
-            {selectedOptions.map((option) => (
+            {(selectedOptions ?? []).map((option) => (
               <li key={option.name}>
                 <small>
                   {option.name}: {option.value}

@@ -1,39 +1,58 @@
-import {useLoaderData, Link} from 'react-router';
+import {Link, useLoaderData} from 'react-router';
+import {Breadcrumbs} from '~/components/Breadcrumbs';
+import {resolvePolicyList} from '~/lib/policies';
+import {seoPayload} from '~/lib/seo';
 
-/**
- * @param {Route.LoaderArgs}
- */
+export const meta = () => {
+  return seoPayload({
+    title: 'Policies',
+    description: 'Privacy, shipping, refunds, and terms for Sloane.',
+    url: '/policies',
+  });
+};
+
 export async function loader({context}) {
-  const data = await context.storefront.query(POLICIES_QUERY);
-
-  const shopPolicies = data.shop;
-  const policies = [
-    shopPolicies?.privacyPolicy,
-    shopPolicies?.shippingPolicy,
-    shopPolicies?.termsOfService,
-    shopPolicies?.refundPolicy,
-    shopPolicies?.subscriptionPolicy,
-  ].filter((policy) => policy != null);
-
-  if (!policies.length) {
-    throw new Response('No policies found', {status: 404});
+  let shop = null;
+  try {
+    const data = await context.storefront.query(POLICIES_QUERY);
+    shop = data.shop;
+  } catch (error) {
+    console.error(error);
   }
 
-  return {policies};
+  return {policies: resolvePolicyList(shop)};
 }
 
 export default function Policies() {
-  /** @type {LoaderReturnData} */
   const {policies} = useLoaderData();
 
   return (
-    <div className="policies">
-      <h1>Policies</h1>
-      <div>
+    <div className="page-shell policy-page">
+      <Breadcrumbs
+        items={[
+          {label: 'Home', to: '/'},
+          {label: 'Policies'},
+        ]}
+      />
+      <header className="page-header">
+        <p className="eyebrow">Sloane</p>
+        <h1>Policies</h1>
+        <p className="lede">
+          How we handle your data, shipping, returns, and the terms of this shop.
+        </p>
+      </header>
+      <div className="policy-cards">
         {policies.map((policy) => (
-          <fieldset key={policy.id}>
-            <Link to={`/policies/${policy.handle}`}>{policy.title}</Link>
-          </fieldset>
+          <Link
+            className="policy-card"
+            key={policy.id}
+            prefetch="intent"
+            to={`/policies/${policy.handle}`}
+          >
+            <h2>{policy.title}</h2>
+            <p>{policy.lede}</p>
+            <span>Read</span>
+          </Link>
         ))}
       </div>
     </div>
@@ -61,16 +80,6 @@ const POLICIES_QUERY = `#graphql
       refundPolicy {
         ...PolicyItem
       }
-      subscriptionPolicy {
-        id
-        title
-        handle
-      }
     }
   }
 `;
-
-/** @typedef {import('./+types/policies._index').Route} Route */
-/** @typedef {import('storefrontapi.generated').PoliciesQuery} PoliciesQuery */
-/** @typedef {import('storefrontapi.generated').PolicyItemFragment} PolicyItemFragment */
-/** @typedef {ReturnType<typeof useLoaderData<typeof loader>>} LoaderReturnData */

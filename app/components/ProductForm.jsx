@@ -1,6 +1,8 @@
 import {Link, useNavigate} from 'react-router';
+import {useState} from 'react';
 import {AddToCartButton} from './AddToCartButton';
 import {useAside} from './Aside';
+import {colorFromName, isColorOption} from '~/lib/swatch';
 
 /**
  * @param {{
@@ -11,107 +13,151 @@ import {useAside} from './Aside';
 export function ProductForm({productOptions, selectedVariant}) {
   const navigate = useNavigate();
   const {open} = useAside();
+  const [quantity, setQuantity] = useState(1);
+  const available = Boolean(selectedVariant?.availableForSale);
+  const checkoutUrl = selectedVariant
+    ? `/cart/${selectedVariant.id}:${quantity}`
+    : '/cart';
+
   return (
     <div className="product-form">
       {productOptions.map((option) => {
-        // If there is only a single value in the option values, don't display the option
         if (option.optionValues.length === 1) return null;
+        const selectedLabel = option.optionValues.find((value) => value.selected)?.name;
+        const colorOption = isColorOption(option.name);
 
         return (
           <div className="product-options" key={option.name}>
-            <h5>{option.name}</h5>
-            <div className="product-options-grid">
+            <h3>
+              {option.name}
+              {selectedLabel ? <span> {selectedLabel}</span> : null}
+            </h3>
+            <div
+              className={`product-options-grid${colorOption ? ' is-swatches' : ''}`}
+              role="group"
+              aria-label={option.name}
+            >
               {option.optionValues.map((value) => {
                 const {
                   name,
                   handle,
                   variantUriQuery,
                   selected,
-                  available,
+                  available: valueAvailable,
                   exists,
                   isDifferentProduct,
                   swatch,
                 } = value;
+                const className = `product-options-item${selected ? ' is-selected' : ''}${
+                  colorOption ? ' is-swatch' : ''
+                }`;
 
                 if (isDifferentProduct) {
-                  // SEO
-                  // When the variant is a combined listing child product
-                  // that leads to a different url, we need to render it
-                  // as an anchor tag
                   return (
                     <Link
-                      className="product-options-item"
+                      className={className}
                       key={option.name + name}
                       prefetch="intent"
                       preventScrollReset
                       replace
                       to={`/products/${handle}?${variantUriQuery}`}
-                      style={{
-                        border: selected
-                          ? '1px solid black'
-                          : '1px solid transparent',
-                        opacity: available ? 1 : 0.3,
-                      }}
+                      aria-label={name}
+                      aria-pressed={selected}
+                      style={{opacity: valueAvailable ? 1 : 0.35}}
                     >
                       <ProductOptionSwatch swatch={swatch} name={name} />
                     </Link>
                   );
-                } else {
-                  // SEO
-                  // When the variant is an update to the search param,
-                  // render it as a button with javascript navigating to
-                  // the variant so that SEO bots do not index these as
-                  // duplicated links
-                  return (
-                    <button
-                      type="button"
-                      className={`product-options-item${exists && !selected ? ' link' : ''}`}
-                      key={option.name + name}
-                      style={{
-                        border: selected
-                          ? '1px solid black'
-                          : '1px solid transparent',
-                        opacity: available ? 1 : 0.3,
-                      }}
-                      disabled={!exists}
-                      onClick={() => {
-                        if (!selected) {
-                          void navigate(`?${variantUriQuery}`, {
-                            replace: true,
-                            preventScrollReset: true,
-                          });
-                        }
-                      }}
-                    >
-                      <ProductOptionSwatch swatch={swatch} name={name} />
-                    </button>
-                  );
                 }
+
+                return (
+                  <button
+                    type="button"
+                    className={className}
+                    key={option.name + name}
+                    aria-label={name}
+                    aria-pressed={selected}
+                    disabled={!exists}
+                    style={{opacity: valueAvailable ? 1 : 0.35}}
+                    onClick={() => {
+                      if (!selected) {
+                        void navigate(`?${variantUriQuery}`, {
+                          replace: true,
+                          preventScrollReset: true,
+                        });
+                      }
+                    }}
+                  >
+                    <ProductOptionSwatch swatch={swatch} name={name} />
+                  </button>
+                );
               })}
             </div>
-            <br />
           </div>
         );
       })}
-      <AddToCartButton
-        disabled={!selectedVariant || !selectedVariant.availableForSale}
-        onClick={() => {
-          open('cart');
-        }}
-        lines={
-          selectedVariant
-            ? [
-                {
-                  merchandiseId: selectedVariant.id,
-                  quantity: 1,
-                  selectedVariant,
-                },
-              ]
-            : []
-        }
-      >
-        {selectedVariant?.availableForSale ? 'Add to cart' : 'Sold out'}
-      </AddToCartButton>
+
+      <div className="field">
+        <label htmlFor="quantity">Quantity</label>
+        <div className="qty">
+          <button
+            type="button"
+            aria-label="Decrease quantity"
+            onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+          >
+            −
+          </button>
+          <input
+            id="quantity"
+            name="quantity"
+            type="number"
+            min="1"
+            value={quantity}
+            onChange={(event) =>
+              setQuantity(Math.max(1, Number(event.currentTarget.value) || 1))
+            }
+          />
+          <button
+            type="button"
+            aria-label="Increase quantity"
+            onClick={() => setQuantity((value) => value + 1)}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <div className="product-actions">
+        <AddToCartButton
+          className="btn btn-full"
+          disabled={!selectedVariant || !available}
+          onClick={() => open('cart')}
+          lines={
+            selectedVariant
+              ? [
+                  {
+                    merchandiseId: selectedVariant.id,
+                    quantity,
+                    selectedVariant: {
+                      ...selectedVariant,
+                      product: selectedVariant.product || {
+                        handle: selectedVariant.product?.handle,
+                        title: selectedVariant.product?.title,
+                      },
+                    },
+                  },
+                ]
+              : []
+          }
+        >
+          {available ? 'Add to cart' : 'Sold out'}
+        </AddToCartButton>
+        {available ? (
+          <Link className="btn btn-secondary btn-full" to={checkoutUrl}>
+            Buy now
+          </Link>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -124,20 +170,18 @@ export function ProductForm({productOptions, selectedVariant}) {
  */
 function ProductOptionSwatch({swatch, name}) {
   const image = swatch?.image?.previewImage?.url;
-  const color = swatch?.color;
+  const color = swatch?.color || colorFromName(name);
 
   if (!image && !color) return name;
 
   return (
-    <div
-      aria-label={name}
+    <span
+      aria-hidden="true"
       className="product-option-label-swatch"
-      style={{
-        backgroundColor: color || 'transparent',
-      }}
+      style={{backgroundColor: color || 'transparent'}}
     >
-      {!!image && <img src={image} alt={name} />}
-    </div>
+      {image ? <img src={image} alt="" /> : null}
+    </span>
   );
 }
 

@@ -3,5 +3,14 @@
 /// <reference types="@shopify/oxygen-workers-types" />
 /// <reference types="@shopify/hydrogen/react-router-types" />
 
-// Enhance TypeScript's built-in typings.
 import '@total-typescript/ts-reset';
+
+declare global {
+  interface Env {
+    PUBLIC_JUDGEME_SHOP_DOMAIN?: string;
+    CONTACT_FORM_ENDPOINT?: string;
+    NEWSLETTER_FORM_ENDPOINT?: string;
+  }
+}
+
+export {};

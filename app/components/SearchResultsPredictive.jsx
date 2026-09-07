@@ -1,6 +1,6 @@
 import {Link, useFetcher} from 'react-router';
 import {Image, Money} from '@shopify/hydrogen';
-import React, {useRef, useEffect} from 'react';
+import {useRef, useEffect} from 'react';
 import {
   getEmptyPredictiveSearchResult,
   urlWithTrackingParams,
@@ -256,7 +256,9 @@ function usePredictiveSearch() {
   const inputRef = useRef(null);
 
   if (fetcher?.state === 'loading') {
-    term.current = String(fetcher.formData?.get('q') || '');
+    term.current = String(fetcher.formData?.get('q') || fetcher.json?.q || '');
+  } else if (fetcher?.data?.term) {
+    term.current = String(fetcher.data.term);
   }
 
   // capture the search input element as a ref

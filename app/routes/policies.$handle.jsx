@@ -1,63 +1,61 @@
-import {Link, useLoaderData} from 'react-router';
+import {useLoaderData} from 'react-router';
+import {PolicyLayout} from '~/components/PolicyLayout';
+import {handleToPolicyField, resolvePolicy} from '~/lib/policies';
+import {seoPayload} from '~/lib/seo';
 
-/**
- * @type {Route.MetaFunction}
- */
 export const meta = ({data}) => {
-  return [{title: `Hydrogen | ${data?.policy.title ?? ''}`}];
+  return seoPayload({
+    title: data?.policy?.title || 'Policy',
+    description: data?.policy?.lede,
+    url: data?.policy ? `/policies/${data.policy.handle}` : undefined,
+  });
 };
 
-/**
- * @param {Route.LoaderArgs}
- */
 export async function loader({params, context}) {
   if (!params.handle) {
-    throw new Response('No handle was passed in', {status: 404});
+    throw new Response('Policy not found', {status: 404});
   }
 
-  const policyName = params.handle.replace(/-([a-z])/g, (_, m1) =>
-    m1.toUpperCase(),
-  );
+  const policyField = handleToPolicyField(params.handle);
+  if (!policyField) {
+    throw new Response('Policy not found', {status: 404});
+  }
 
-  const data = await context.storefront.query(POLICY_CONTENT_QUERY, {
-    variables: {
-      privacyPolicy: false,
-      shippingPolicy: false,
-      termsOfService: false,
-      refundPolicy: false,
-      [policyName]: true,
-      language: context.storefront.i18n?.language,
-    },
-  });
+  let shopPolicy = null;
+  try {
+    const data = await context.storefront.query(POLICY_CONTENT_QUERY, {
+      variables: {
+        privacyPolicy: false,
+        shippingPolicy: false,
+        termsOfService: false,
+        refundPolicy: false,
+        [policyField]: true,
+        language: context.storefront.i18n?.language,
+      },
+    });
+    shopPolicy = data.shop?.[policyField] || null;
+  } catch (error) {
+    console.error(error);
+  }
 
-  const policy = data.shop?.[policyName];
-
+  const policy = resolvePolicy(params.handle, shopPolicy);
   if (!policy) {
-    throw new Response('Could not find the policy', {status: 404});
+    throw new Response('Policy not found', {status: 404});
   }
 
   return {policy};
 }
 
 export default function Policy() {
-  /** @type {LoaderReturnData} */
   const {policy} = useLoaderData();
 
   return (
-    <div className="policy">
-      <br />
-      <br />
-      <div>
-        <Link to="/policies">← Back to Policies</Link>
-      </div>
-      <br />
-      <h1>{policy.title}</h1>
+    <PolicyLayout title={policy.title} lede={policy.lede} handle={policy.handle}>
       <div dangerouslySetInnerHTML={{__html: policy.body}} />
-    </div>
+    </PolicyLayout>
   );
 }
 
-// NOTE: https://shopify.dev/docs/api/storefront/latest/objects/Shop
 const POLICY_CONTENT_QUERY = `#graphql
   fragment Policy on ShopPolicy {
     body
@@ -90,14 +88,3 @@ const POLICY_CONTENT_QUERY = `#graphql
     }
   }
 `;
-
-/**
- * @typedef {keyof Pick<
- *   Shop,
- *   'privacyPolicy' | 'shippingPolicy' | 'termsOfService' | 'refundPolicy'
- * >} SelectedPolicies
- */
-
-/** @typedef {import('./+types/policies.$handle').Route} Route */
-/** @typedef {import('@shopify/hydrogen/storefront-api-types').Shop} Shop */
-/** @typedef {ReturnType<typeof useLoaderData<typeof loader>>} LoaderReturnData */

@@ -1,14 +1,21 @@
 import {useLoaderData} from 'react-router';
-import {getPaginationVariables, Analytics} from '@shopify/hydrogen';
+import {Analytics, getPaginationVariables} from '@shopify/hydrogen';
+import {ProductGrid} from '~/components/ProductGrid';
 import {SearchForm} from '~/components/SearchForm';
-import {SearchResults} from '~/components/SearchResults';
 import {getEmptyPredictiveSearchResult} from '~/lib/search';
+import {CATALOG_SEARCH_QUERY} from '~/lib/shopify/queries/search';
+import {seoPayload} from '~/lib/seo';
 
 /**
  * @type {Route.MetaFunction}
  */
-export const meta = () => {
-  return [{title: `Hydrogen | Search`}];
+export const meta = ({data}) => {
+  const term = data?.term;
+  return seoPayload({
+    title: term ? `Search: ${term}` : 'Search',
+    description: term ? `Results for ${term}` : 'Search the Sloane collection.',
+    url: term ? `/search?q=${encodeURIComponent(term)}` : '/search',
+  });
 };
 
 /**
@@ -17,57 +24,74 @@ export const meta = () => {
 export async function loader({request, context}) {
   const url = new URL(request.url);
   const isPredictive = url.searchParams.has('predictive');
-  const searchPromise = isPredictive
-    ? predictiveSearch({request, context})
-    : regularSearch({request, context});
 
-  searchPromise.catch((error) => {
+  try {
+    return isPredictive
+      ? await predictiveSearch({request, context})
+      : await regularSearch({request, context});
+  } catch (error) {
     console.error(error);
-    return {term: '', result: null, error: error.message};
-  });
-
-  return await searchPromise;
+    const term = String(url.searchParams.get('q') || '').trim();
+    if (isPredictive) {
+      return {type: 'predictive', term, result: getEmptyPredictiveSearchResult(), error: error.message};
+    }
+    return {type: 'regular', term, result: {total: 0, items: emptyRegularItems()}, error: error.message};
+  }
 }
 
 /**
  * Renders the /search route
  */
 export default function SearchPage() {
-  /** @type {LoaderReturnData} */
   const {type, term, result, error} = useLoaderData();
   if (type === 'predictive') return null;
 
+  const products = result?.items?.products?.nodes || [];
+
   return (
-    <div className="search">
-      <h1>Search</h1>
+    <div className="search-page">
+      <header className="page-header">
+        <p className="eyebrow">Search</p>
+        <h1>{term ? `Results for “${term}”` : 'Search the collection'}</h1>
+      </header>
       <SearchForm>
         {({inputRef}) => (
-          <>
+          <div className="search-form">
+            <label htmlFor="search-q" className="sr-only">
+              Search
+            </label>
             <input
+              id="search-q"
               defaultValue={term}
               name="q"
-              placeholder="Search…"
+              placeholder="Search products"
               ref={inputRef}
               type="search"
             />
-            &nbsp;
-            <button type="submit">Search</button>
-          </>
+            <button className="btn" type="submit">
+              Search
+            </button>
+          </div>
         )}
       </SearchForm>
-      {error && <p style={{color: 'red'}}>{error}</p>}
-      {!term || !result?.total ? (
-        <SearchResults.Empty />
+      {error ? <p className="field-error">{error}</p> : null}
+      {!term ? (
+        <div className="empty-state">
+          <h2>Find something you love</h2>
+          <p>Try hoodie, sneakers, or a color.</p>
+        </div>
+      ) : products.length ? (
+        <>
+          <p className="collection-toolbar">
+            Showing {products.length} {products.length === 1 ? 'product' : 'products'}
+          </p>
+          <ProductGrid products={products} />
+        </>
       ) : (
-        <SearchResults result={result} term={term}>
-          {({articles, pages, products, term}) => (
-            <div>
-              <SearchResults.Products products={products} term={term} />
-              <SearchResults.Pages pages={pages} term={term} />
-              <SearchResults.Articles articles={articles} term={term} />
-            </div>
-          )}
-        </SearchResults>
+        <div className="empty-state">
+          <h2>No results for “{term}”</h2>
+          <p>Try a different keyword, or browse the full catalog.</p>
+        </div>
       )}
       <Analytics.SearchView data={{searchTerm: term, searchResults: result}} />
     </div>
@@ -218,28 +242,60 @@ export const SEARCH_QUERY = `#graphql
 async function regularSearch({request, context}) {
   const {storefront} = context;
   const url = new URL(request.url);
-  const variables = getPaginationVariables(request, {pageBy: 8});
-  const term = String(url.searchParams.get('q') || '');
+  const term = String(url.searchParams.get('q') || '').trim();
 
-  // Search articles, pages, and products for the `q` term
-  const {errors, ...items} = await storefront.query(SEARCH_QUERY, {
-    variables: {...variables, term},
-  });
-
-  if (!items) {
-    throw new Error('No search data returned from Shopify API');
+  if (!term) {
+    return {type: 'regular', term, result: {total: 0, items: emptyRegularItems()}};
   }
 
-  const total = Object.values(items).reduce(
-    (acc, {nodes}) => acc + nodes.length,
-    0,
-  );
+  try {
+    const variables = getPaginationVariables(request, {pageBy: 12});
+    const {errors, ...items} = await storefront.query(SEARCH_QUERY, {
+      variables: {...variables, term},
+    });
+    const nodes = items?.products?.nodes || [];
+    if (nodes.length) {
+      items.products = {
+        ...items.products,
+        nodes: nodes.map(toProductCard),
+      };
+      return {
+        type: 'regular',
+        term,
+        error: errors?.map(({message}) => message).join(', '),
+        result: {total: nodes.length, items},
+      };
+    }
+  } catch (error) {
+    console.error(error);
+  }
 
-  const error = errors
-    ? errors.map(({message}) => message).join(', ')
-    : undefined;
+  const catalog = await catalogSearch(storefront, term, 12);
+  return {
+    type: 'regular',
+    term,
+    result: {
+      total: catalog.products.nodes.length,
+      items: {
+        ...emptyRegularItems(),
+        products: catalog.products,
+      },
+    },
+  };
+}
 
-  return {type: 'regular', term, error, result: {total, items}};
+function toProductCard(product) {
+  const variant = product.selectedOrFirstAvailableVariant;
+  const image = variant?.image || null;
+  const price = variant?.price || {amount: '0', currencyCode: 'USD'};
+  return {
+    ...product,
+    availableForSale: Boolean(variant?.id),
+    featuredImage: image,
+    images: {nodes: image ? [image] : []},
+    priceRange: {minVariantPrice: price},
+    compareAtPriceRange: {minVariantPrice: variant?.compareAtPrice || null},
+  };
 }
 
 /**
@@ -379,40 +435,100 @@ async function predictiveSearch({request, context}) {
   const {storefront} = context;
   const url = new URL(request.url);
   const term = String(url.searchParams.get('q') || '').trim();
-  const limit = Number(url.searchParams.get('limit') || 10);
+  const limit = Number(url.searchParams.get('limit') || 6);
   const type = 'predictive';
 
   if (!term) return {type, term, result: getEmptyPredictiveSearchResult()};
 
-  // Predictively search articles, collections, pages, products, and queries (suggestions)
-  const {predictiveSearch: items, errors} = await storefront.query(
-    PREDICTIVE_SEARCH_QUERY,
-    {
-      variables: {
-        // customize search options as needed
-        limit,
-        limitScope: 'EACH',
-        term,
+  try {
+    const {predictiveSearch: items, errors} = await storefront.query(
+      PREDICTIVE_SEARCH_QUERY,
+      {
+        variables: {
+          limit,
+          limitScope: 'EACH',
+          term,
+        },
+      },
+    );
+
+    if (!errors && items?.products?.length) {
+      const total = Object.values(items).reduce(
+        (acc, item) => acc + (item?.length || 0),
+        0,
+      );
+      return {type, term, result: {items, total}};
+    }
+  } catch (error) {
+    console.error(error);
+  }
+
+  const catalog = await catalogSearch(storefront, term, limit);
+  const items = {
+    articles: [],
+    pages: [],
+    queries: [],
+    collections: catalog.collections.nodes,
+    products: catalog.products.nodes.map((product) => ({
+      __typename: 'Product',
+      id: product.id,
+      title: product.title,
+      handle: product.handle,
+      trackingParameters: null,
+      selectedOrFirstAvailableVariant: product.selectedOrFirstAvailableVariant,
+    })),
+  };
+
+  return {
+    type,
+    term,
+    result: {
+      items,
+      total: items.products.length + items.collections.length,
+    },
+  };
+}
+
+function emptyRegularItems() {
+  return {
+    articles: {nodes: []},
+    pages: {nodes: []},
+    products: {
+      nodes: [],
+      pageInfo: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: null,
+        endCursor: null,
       },
     },
+  };
+}
+
+async function catalogSearch(storefront, term, first) {
+  const data = await storefront.query(CATALOG_SEARCH_QUERY, {
+    variables: {query: term, first},
+  });
+
+  const needle = term.toLowerCase();
+  const productNodes = data.products?.nodes || [];
+  const matchedProducts = productNodes.filter((product) =>
+    product.title.toLowerCase().includes(needle),
+  );
+  const collectionNodes = data.collections?.nodes || [];
+  const matchedCollections = collectionNodes.filter((collection) =>
+    collection.title.toLowerCase().includes(needle),
   );
 
-  if (errors) {
-    throw new Error(
-      `Shopify API errors: ${errors.map(({message}) => message).join(', ')}`,
-    );
-  }
-
-  if (!items) {
-    throw new Error('No predictive search data returned from Shopify API');
-  }
-
-  const total = Object.values(items).reduce(
-    (acc, item) => acc + item.length,
-    0,
-  );
-
-  return {type, term, result: {items, total}};
+  return {
+    products: {
+      ...(data.products || emptyRegularItems().products),
+      nodes: matchedProducts.length ? matchedProducts : productNodes,
+    },
+    collections: {
+      nodes: matchedCollections.length ? matchedCollections : collectionNodes,
+    },
+  };
 }
 
 /** @typedef {import('./+types/search').Route} Route */

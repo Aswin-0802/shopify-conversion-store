@@ -1,26 +1,71 @@
 import {Suspense} from 'react';
 import {Await, NavLink} from 'react-router';
+import {Newsletter} from '~/components/Newsletter';
+import {siteContent} from '~/lib/site-content';
 
 /**
  * @param {FooterProps}
  */
 export function Footer({footer: footerPromise, header, publicStoreDomain}) {
   return (
-    <Suspense>
-      <Await resolve={footerPromise}>
-        {(footer) => (
-          <footer className="footer">
-            {footer?.menu && header.shop.primaryDomain?.url && (
-              <FooterMenu
-                menu={footer.menu}
-                primaryDomainUrl={header.shop.primaryDomain.url}
-                publicStoreDomain={publicStoreDomain}
-              />
-            )}
-          </footer>
-        )}
-      </Await>
-    </Suspense>
+    <footer className="site-footer">
+      <div className="container">
+        <div className="footer-grid">
+          <div>
+            <p className="footer-brand">{siteContent.brandName}</p>
+            <p>{siteContent.tagline}</p>
+            <div style={{marginTop: '1.25rem'}}>
+              {siteContent.social.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                  style={{marginRight: '1rem'}}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="eyebrow" style={{color: 'inherit'}}>
+              Shop
+            </p>
+            {siteContent.nav.map((item) => (
+              <div key={item.to}>
+                <NavLink prefetch="intent" to={item.to}>
+                  {item.title}
+                </NavLink>
+              </div>
+            ))}
+          </div>
+          <Suspense>
+            <Await resolve={footerPromise}>
+              {(footer) => (
+                <FooterMenu
+                  menu={footer?.menu}
+                  primaryDomainUrl={header.shop.primaryDomain.url}
+                  publicStoreDomain={publicStoreDomain}
+                />
+              )}
+            </Await>
+          </Suspense>
+          <div>
+            <p className="eyebrow" style={{color: 'inherit'}}>
+              Stay in touch
+            </p>
+            <Newsletter compact />
+          </div>
+        </div>
+        <div className="footer-meta">
+          <p>
+            © {new Date().getFullYear()} {siteContent.brandName}
+          </p>
+          <p>{siteContent.footerNote}</p>
+        </div>
+      </div>
+    </footer>
   );
 }
 
@@ -32,11 +77,15 @@ export function Footer({footer: footerPromise, header, publicStoreDomain}) {
  * }}
  */
 function FooterMenu({menu, primaryDomainUrl, publicStoreDomain}) {
+  const items = menu?.items?.length ? menu.items : FALLBACK_FOOTER_MENU.items;
+
   return (
-    <nav className="footer-menu" role="navigation">
-      {(menu || FALLBACK_FOOTER_MENU).items.map((item) => {
+    <nav aria-label="Policies">
+      <p className="eyebrow" style={{color: 'inherit'}}>
+        Help
+      </p>
+      {items.map((item) => {
         if (!item.url) return null;
-        // if the url is internal, we strip the domain
         const url =
           item.url.includes('myshopify.com') ||
           item.url.includes(publicStoreDomain) ||
@@ -45,19 +94,17 @@ function FooterMenu({menu, primaryDomainUrl, publicStoreDomain}) {
             : item.url;
         const isExternal = !url.startsWith('/');
         return isExternal ? (
-          <a href={url} key={item.id} rel="noopener noreferrer" target="_blank">
-            {item.title}
-          </a>
+          <div key={item.id}>
+            <a href={url} rel="noopener noreferrer" target="_blank">
+              {item.title}
+            </a>
+          </div>
         ) : (
-          <NavLink
-            end
-            key={item.id}
-            prefetch="intent"
-            style={activeLinkStyle}
-            to={url}
-          >
-            {item.title}
-          </NavLink>
+          <div key={item.id}>
+            <NavLink end prefetch="intent" to={url}>
+              {item.title}
+            </NavLink>
+          </div>
         );
       })}
     </nav>
@@ -65,59 +112,14 @@ function FooterMenu({menu, primaryDomainUrl, publicStoreDomain}) {
 }
 
 const FALLBACK_FOOTER_MENU = {
-  id: 'gid://shopify/Menu/199655620664',
+  id: 'fallback-footer',
   items: [
-    {
-      id: 'gid://shopify/MenuItem/461633060920',
-      resourceId: 'gid://shopify/ShopPolicy/23358046264',
-      tags: [],
-      title: 'Privacy Policy',
-      type: 'SHOP_POLICY',
-      url: '/policies/privacy-policy',
-      items: [],
-    },
-    {
-      id: 'gid://shopify/MenuItem/461633093688',
-      resourceId: 'gid://shopify/ShopPolicy/23358013496',
-      tags: [],
-      title: 'Refund Policy',
-      type: 'SHOP_POLICY',
-      url: '/policies/refund-policy',
-      items: [],
-    },
-    {
-      id: 'gid://shopify/MenuItem/461633126456',
-      resourceId: 'gid://shopify/ShopPolicy/23358111800',
-      tags: [],
-      title: 'Shipping Policy',
-      type: 'SHOP_POLICY',
-      url: '/policies/shipping-policy',
-      items: [],
-    },
-    {
-      id: 'gid://shopify/MenuItem/461633159224',
-      resourceId: 'gid://shopify/ShopPolicy/23358079032',
-      tags: [],
-      title: 'Terms of Service',
-      type: 'SHOP_POLICY',
-      url: '/policies/terms-of-service',
-      items: [],
-    },
+    {id: '1', title: 'Privacy Policy', url: '/policies/privacy-policy', items: []},
+    {id: '2', title: 'Refund Policy', url: '/policies/refund-policy', items: []},
+    {id: '3', title: 'Shipping Policy', url: '/policies/shipping-policy', items: []},
+    {id: '4', title: 'Terms of Service', url: '/policies/terms-of-service', items: []},
   ],
 };
-
-/**
- * @param {{
- *   isActive: boolean;
- *   isPending: boolean;
- * }}
- */
-function activeLinkStyle({isActive, isPending}) {
-  return {
-    fontWeight: isActive ? 'bold' : undefined,
-    color: isPending ? 'grey' : 'white',
-  };
-}
 
 /**
  * @typedef {Object} FooterProps

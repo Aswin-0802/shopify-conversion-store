@@ -6,7 +6,7 @@ import {CartMain} from '~/components/CartMain';
  * @type {Route.MetaFunction}
  */
 export const meta = () => {
-  return [{title: `Hydrogen | Cart`}];
+  return [{title: `Cart · Sloane`}];
 };
 
 /**
@@ -48,7 +48,7 @@ export async function action({request, context}) {
       const discountCodes = formDiscountCode ? [formDiscountCode] : [];
 
       // Combine discount codes already applied on cart
-      discountCodes.push(...inputs.discountCodes);
+      discountCodes.push(...(inputs.discountCodes ?? []));
 
       result = await cart.updateDiscountCodes(discountCodes);
       break;
@@ -74,6 +74,10 @@ export async function action({request, context}) {
     }
     default:
       throw new Error(`${action} cart action is not defined`);
+  }
+
+  if (!result) {
+    throw new Error('Cart update failed. Please try again.');
   }
 
   const cartId = result?.cart?.id;
@@ -112,7 +116,7 @@ export default function Cart() {
   const cart = useLoaderData();
 
   return (
-    <div className="cart">
+    <div className="cart-page">
       <h1>Cart</h1>
       <CartMain layout="page" cart={cart} />
     </div>

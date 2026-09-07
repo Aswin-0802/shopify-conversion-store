@@ -50,10 +50,9 @@ function CartCheckoutActions({checkoutUrl}) {
 
   return (
     <div>
-      <a href={checkoutUrl} target="_self">
-        <p>Continue to Checkout &rarr;</p>
+      <a className="btn btn-full" href={checkoutUrl} target="_self">
+        Checkout
       </a>
-      <br />
     </div>
   );
 }
@@ -97,9 +96,8 @@ function CartDiscounts({
         </div>
       </dl>
 
-      {/* Show an input to apply a discount */}
       <UpdateDiscountForm discountCodes={codes}>
-        <div>
+        <div className="cart-code-row">
           <label htmlFor={discountCodeInputId} className="sr-only">
             Discount code
           </label>
@@ -109,8 +107,7 @@ function CartDiscounts({
             name="discountCode"
             placeholder="Discount code"
           />
-          &nbsp;
-          <button type="submit" aria-label="Apply discount code">
+          <button className="btn" type="submit" aria-label="Apply discount code">
             Apply
           </button>
         </div>
@@ -222,7 +219,7 @@ function CartGiftCard({giftCardCodes, giftCardHeadingId, giftCardInputId}) {
       )}
 
       <AddGiftCardForm fetcherKey="gift-card-add">
-        <div>
+        <div className="cart-code-row">
           <label htmlFor={giftCardInputId} className="sr-only">
             Gift card code
           </label>
@@ -233,8 +230,8 @@ function CartGiftCard({giftCardCodes, giftCardHeadingId, giftCardInputId}) {
             placeholder="Gift card code"
             ref={giftCardCodeInput}
           />
-          &nbsp;
           <button
+            className="btn"
             type="submit"
             disabled={giftCardAddFetcher.state !== 'idle'}
             aria-label="Apply gift card code"
