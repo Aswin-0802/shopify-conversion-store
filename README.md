@@ -88,11 +88,38 @@ Hydrogen is a React Router app with a Worker-style `fetch` server (`server.js`).
 Best option once `hydrogen link` works.
 
 ```bash
-npm run build
 npx shopify hydrogen deploy
 ```
 
 Oxygen gives you a `*.myshopify.dev` URL (and you can attach a custom domain in the Hydrogen channel). You do **not** need Vercel for this.
+
+#### Why visitors see “Log in — Continue to Oxygen”
+
+Oxygen **preview deployments are private by default**. A URL like:
+
+`https://01m1x….myshopify.dev`
+
+always sends strangers to Shopify login. That is staff/preview auth, not a bug in this repo.
+
+Share the **production** storefront URL instead:
+
+`https://sloane-537fbcfec468b845b4b3.o2.myshopify.dev`
+
+If that URL also asks for login (common on **development stores**), make a public link:
+
+1. Shopify Admin → **Sales channels → Hydrogen → Sloane**
+2. Open the latest **deployment**
+3. Click **Share** → **Anyone with the link** → **Copy link**
+
+Shareable links need a store on the **Basic plan or above**. Development stores often cannot create them.
+
+CLI workaround (token lasts up to 12 hours):
+
+```bash
+npx shopify hydrogen deploy --auth-bypass-token --auth-bypass-token-duration 12
+```
+
+The command prints a URL with a bypass token. Send that link, not the raw preview URL.
 
 ### B. Vercel (free hobby plan)
 
