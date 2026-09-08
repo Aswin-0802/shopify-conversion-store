@@ -16,6 +16,17 @@ export const FEATURED_COLLECTIONS_QUERY = `#graphql
           width
           height
         }
+        products(first: 1) {
+          nodes {
+            featuredImage {
+              id
+              url
+              altText
+              width
+              height
+            }
+          }
+        }
       }
     }
   }

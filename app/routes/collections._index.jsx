@@ -1,6 +1,7 @@
 import {useLoaderData, Link} from 'react-router';
 import {getPaginationVariables, Image} from '@shopify/hydrogen';
 import {PaginatedResourceSection} from '~/components/PaginatedResourceSection';
+import {collectionImage} from '~/lib/collection';
 import {COLLECTIONS_INDEX_QUERY} from '~/lib/shopify/queries/collection';
 import {seoPayload} from '~/lib/seo';
 
@@ -88,6 +89,8 @@ export default function Collections() {
  * }}
  */
 function CollectionItem({collection, index}) {
+  const image = collectionImage(collection);
+
   return (
     <Link
       className="product-card"
@@ -95,15 +98,20 @@ function CollectionItem({collection, index}) {
       to={`/collections/${collection.handle}`}
       prefetch="intent"
     >
-      {collection?.image && (
+      {image ? (
         <div className="product-card-media">
           <Image
-            alt={collection.image.altText || collection.title}
+            alt={image.altText || collection.title}
             aspectRatio="4/5"
-            data={collection.image}
+            crop="center"
+            data={image}
             loading={index < 3 ? 'eager' : undefined}
             sizes="(min-width: 45em) 400px, 50vw"
           />
+        </div>
+      ) : (
+        <div className="product-card-media">
+          <div className="skeleton skeleton-card" />
         </div>
       )}
       <h3>{collection.title}</h3>

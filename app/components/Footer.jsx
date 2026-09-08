@@ -1,6 +1,7 @@
 import {Suspense} from 'react';
 import {Await, NavLink} from 'react-router';
 import {Newsletter} from '~/components/Newsletter';
+import {PrivacyChoices} from '~/components/PrivacyChoices';
 import {siteContent} from '~/lib/site-content';
 
 /**
@@ -62,6 +63,7 @@ export function Footer({footer: footerPromise, header, publicStoreDomain}) {
           <p>
             © {new Date().getFullYear()} {siteContent.brandName}
           </p>
+          <PrivacyChoices />
           <p>{siteContent.footerNote}</p>
         </div>
       </div>
@@ -85,7 +87,7 @@ function FooterMenu({menu, primaryDomainUrl, publicStoreDomain}) {
         Help
       </p>
       {items.map((item) => {
-        if (!item.url) return null;
+        if (!item.url || isPrivacyChoicesItem(item)) return null;
         const url =
           item.url.includes('myshopify.com') ||
           item.url.includes(publicStoreDomain) ||
@@ -120,6 +122,16 @@ const FALLBACK_FOOTER_MENU = {
     {id: '4', title: 'Terms of Service', url: '/policies/terms-of-service', items: []},
   ],
 };
+
+function isPrivacyChoicesItem(item) {
+  const title = item.title?.toLowerCase() || '';
+  const url = item.url?.toLowerCase() || '';
+  return (
+    title.includes('privacy choices') ||
+    url.includes('data-sharing-opt-out') ||
+    url.includes('privacy-choices')
+  );
+}
 
 /**
  * @typedef {Object} FooterProps

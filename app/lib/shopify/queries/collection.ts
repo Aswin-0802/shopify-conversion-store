@@ -91,6 +91,17 @@ export const COLLECTIONS_INDEX_QUERY = `#graphql
           width
           height
         }
+        products(first: 1) {
+          nodes {
+            featuredImage {
+              id
+              url
+              altText
+              width
+              height
+            }
+          }
+        }
       }
       pageInfo {
         hasNextPage

@@ -79,6 +79,8 @@ export function ProductCard({
           {image ? (
             <Image
               alt={image.altText || product.title}
+              aspectRatio="3/4"
+              crop="center"
               data={image}
               loading={loading}
               sizes="(min-width: 1100px) 25vw, (min-width: 700px) 33vw, 50vw"
@@ -90,6 +92,8 @@ export function ProductCard({
             <Image
               className="hover-image"
               alt=""
+              aspectRatio="3/4"
+              crop="center"
               data={hoverImage}
               loading="lazy"
               sizes="(min-width: 1100px) 25vw, (min-width: 700px) 33vw, 50vw"

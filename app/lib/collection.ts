@@ -52,3 +52,18 @@ export function isOnSale(price?: {amount: string} | null, compareAt?: {amount: s
 export function classNames(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(' ');
 }
+
+type StoreImage = {
+  id?: string | null;
+  url: string;
+  altText?: string | null;
+  width?: number | null;
+  height?: number | null;
+} | null | undefined;
+
+export function collectionImage(collection?: {
+  image?: StoreImage;
+  products?: {nodes?: Array<{featuredImage?: StoreImage}>};
+} | null) {
+  return collection?.image || collection?.products?.nodes?.[0]?.featuredImage || null;
+}

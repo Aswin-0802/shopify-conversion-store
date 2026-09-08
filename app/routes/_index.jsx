@@ -5,6 +5,7 @@ import {Newsletter} from '~/components/Newsletter';
 import {ProductGrid} from '~/components/ProductGrid';
 import {ReviewSummary} from '~/components/reviews/ReviewSummary';
 import {ReviewWidget} from '~/components/reviews/ReviewWidget';
+import {collectionImage} from '~/lib/collection';
 import {catalogFromProductMetafields} from '~/lib/reviews/provider';
 import {absoluteUrl, seoPayload} from '~/lib/seo';
 import {siteContent} from '~/lib/site-content';
@@ -40,15 +41,17 @@ async function loadCriticalData({context, request}) {
   ]);
 
   const featuredCollection = collections.nodes[0];
-  const heroImage =
-    featuredCollection?.image?.url ||
-    shop.brand?.coverImage?.image?.url ||
-    products.nodes[0]?.featuredImage?.url ||
+  const heroMedia =
+    collectionImage(featuredCollection) ||
+    shop.brand?.coverImage?.image ||
+    products.nodes[0]?.featuredImage ||
     null;
+  const heroImage = heroMedia?.url || null;
 
   return {
     isShopLinked: Boolean(env.PUBLIC_STORE_DOMAIN),
     featuredCollection,
+    heroMedia,
     collections: collections.nodes,
     products: products.nodes,
     shopName: shop.name,
@@ -73,16 +76,17 @@ function loadDeferredData({context}) {
 export default function Homepage() {
   const data = useLoaderData();
   const hero = data.featuredCollection;
+  const heroMedia = data.heroMedia;
 
   return (
     <div className="home">
       <section className="hero" aria-labelledby="hero-heading">
-        {hero?.image ? (
+        {heroMedia ? (
           <div className="hero-media">
             <Image
-              data={hero.image}
+              data={heroMedia}
               sizes="100vw"
-              alt={hero.image.altText || hero.title}
+              alt={heroMedia.altText || hero?.title || siteContent.brandName}
             />
           </div>
         ) : null}
@@ -114,17 +118,19 @@ export default function Homepage() {
               </Link>
             </div>
             <div className="featured-collections-grid">
-              {data.collections.map((collection, index) => (
+              {data.collections.map((collection, index) => {
+                const image = collectionImage(collection);
+                return (
                 <Link
                   key={collection.id}
                   className={`collection-tile${index === 0 ? ' is-feature' : ''}`}
                   prefetch="intent"
                   to={`/collections/${collection.handle}`}
                 >
-                  {collection.image ? (
+                  {image ? (
                     <Image
-                      data={collection.image}
-                      alt={collection.image.altText || collection.title}
+                      data={image}
+                      alt={image.altText || collection.title}
                       sizes={index === 0 ? '(min-width: 700px) 50vw, 100vw' : '(min-width: 700px) 25vw, 50vw'}
                     />
                   ) : (
@@ -135,7 +141,8 @@ export default function Homepage() {
                     <h3>{collection.title}</h3>
                   </span>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
@@ -174,10 +181,10 @@ export default function Homepage() {
       <section className="section">
         <div className="container">
           <div className="promo-banner">
-            {hero?.image ? (
+            {heroMedia ? (
               <Image
-                data={hero.image}
-                alt={hero.image.altText || siteContent.promo.title}
+                data={heroMedia}
+                alt={heroMedia.altText || siteContent.promo.title}
                 sizes="(min-width: 860px) 50vw, 100vw"
               />
             ) : (
@@ -237,9 +244,9 @@ export default function Homepage() {
                 {siteContent.story.cta.label}
               </Link>
             </div>
-            {hero?.image ? (
+            {heroMedia ? (
               <Image
-                data={hero.image}
+                data={heroMedia}
                 alt=""
                 sizes="(min-width: 860px) 50vw, 100vw"
               />
