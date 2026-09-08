@@ -40,11 +40,17 @@ async function loadCriticalData({context, request}) {
     storefront.query(SHOP_INFO_QUERY),
   ]);
 
+  const collectionImageUrls = new Set();
   const featuredCollection = collections.nodes[0];
+  const collectionsWithImages = collections.nodes.map((collection) => ({
+    ...collection,
+    displayImage: collectionImage(collection, collectionImageUrls),
+  }));
   const heroMedia =
-    collectionImage(featuredCollection) ||
+    featuredCollection?.image ||
     shop.brand?.coverImage?.image ||
-    products.nodes[0]?.featuredImage ||
+    products.nodes.find((product) => product.featuredImage)?.featuredImage ||
+    collectionsWithImages[0]?.displayImage ||
     null;
   const heroImage = heroMedia?.url || null;
 
@@ -52,7 +58,7 @@ async function loadCriticalData({context, request}) {
     isShopLinked: Boolean(env.PUBLIC_STORE_DOMAIN),
     featuredCollection,
     heroMedia,
-    collections: collections.nodes,
+    collections: collectionsWithImages,
     products: products.nodes,
     shopName: shop.name,
     shopDescription: shop.brand?.shortDescription || shop.description,
@@ -118,12 +124,12 @@ export default function Homepage() {
               </Link>
             </div>
             <div className="featured-collections-grid">
-              {data.collections.map((collection, index) => {
-                const image = collectionImage(collection);
+              {data.collections.map((collection) => {
+                const image = collection.displayImage;
                 return (
                 <Link
                   key={collection.id}
-                  className={`collection-tile${index === 0 ? ' is-feature' : ''}`}
+                  className="collection-tile"
                   prefetch="intent"
                   to={`/collections/${collection.handle}`}
                 >
@@ -131,7 +137,9 @@ export default function Homepage() {
                     <Image
                       data={image}
                       alt={image.altText || collection.title}
-                      sizes={index === 0 ? '(min-width: 700px) 50vw, 100vw' : '(min-width: 700px) 25vw, 50vw'}
+                      aspectRatio="3/2"
+                      crop="center"
+                      sizes="(min-width: 700px) 33vw, 50vw"
                     />
                   ) : (
                     <div className="skeleton skeleton-card" />

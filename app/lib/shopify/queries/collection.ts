@@ -91,7 +91,7 @@ export const COLLECTIONS_INDEX_QUERY = `#graphql
           width
           height
         }
-        products(first: 1) {
+        products(first: 8) {
           nodes {
             featuredImage {
               id

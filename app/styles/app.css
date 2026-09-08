@@ -530,7 +530,8 @@ aside.drawer > main {
 
 .collection-tile {
   position: relative;
-  min-height: 220px;
+  aspect-ratio: 3 / 2;
+  min-height: 0;
   overflow: hidden;
   color: var(--color-surface);
   background: var(--color-ink);
@@ -541,7 +542,7 @@ aside.drawer > main {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  min-height: 220px;
+  min-height: 100%;
   transition: transform 700ms var(--ease);
 }
 
@@ -565,7 +566,7 @@ aside.drawer > main {
 }
 
 .collection-tile h3 {
-  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  font-size: clamp(1.15rem, 1.8vw, 1.55rem);
   color: var(--color-surface);
 }
 
@@ -582,18 +583,7 @@ aside.drawer > main {
   }
 
   .featured-collections-grid {
-    grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: 180px;
-  }
-
-  .collection-tile.is-feature {
-    grid-column: span 2;
-    grid-row: span 2;
-  }
-
-  .collection-tile.is-feature img,
-  .collection-tile.is-feature .skeleton-card {
-    min-height: 100%;
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .collections-grid {
@@ -963,6 +953,12 @@ textarea {
   width: 100%;
   height: 100%;
   max-width: none;
+}
+
+.collection-tile :is(img, picture),
+.collection-tile .skeleton-card {
+  position: absolute;
+  inset: 0;
 }
 
 .product-card-media img,

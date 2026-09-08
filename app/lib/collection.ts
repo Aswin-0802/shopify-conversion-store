@@ -61,9 +61,26 @@ type StoreImage = {
   height?: number | null;
 } | null | undefined;
 
-export function collectionImage(collection?: {
-  image?: StoreImage;
-  products?: {nodes?: Array<{featuredImage?: StoreImage}>};
-} | null) {
-  return collection?.image || collection?.products?.nodes?.[0]?.featuredImage || null;
+export function collectionImage(
+  collection?: {
+    image?: StoreImage;
+    products?: {nodes?: Array<{featuredImage?: StoreImage}>};
+  } | null,
+  usedUrls?: Set<string>,
+) {
+  if (collection?.image) {
+    if (collection.image.url) usedUrls?.add(collection.image.url);
+    return collection.image;
+  }
+
+  const images = (collection?.products?.nodes || [])
+    .map((product) => product.featuredImage)
+    .filter((image): image is NonNullable<StoreImage> => Boolean(image?.url));
+
+  const unique = usedUrls
+    ? images.find((image) => !usedUrls.has(image.url))
+    : images[0];
+  const image = unique || images[0] || null;
+  if (image?.url) usedUrls?.add(image.url);
+  return image;
 }

@@ -16,7 +16,7 @@ export const FEATURED_COLLECTIONS_QUERY = `#graphql
           width
           height
         }
-        products(first: 1) {
+        products(first: 8) {
           nodes {
             featuredImage {
               id
@@ -36,7 +36,7 @@ export const FEATURED_PRODUCTS_QUERY = `#graphql
   ${PRODUCT_CARD_FRAGMENT}
   query FeaturedProducts($country: CountryCode, $language: LanguageCode)
     @inContext(country: $country, language: $language) {
-    products(first: 8, sortKey: BEST_SELLING) {
+    products(first: 12, sortKey: BEST_SELLING) {
       nodes {
         ...ProductCard
       }
